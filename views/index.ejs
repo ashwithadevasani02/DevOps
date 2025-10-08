@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expense Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column align-items-center p-5">
+
+    <div class="card p-4 w-75">
+        <h1 class="mb-4 text-primary">💰 Expense Tracker</h1>
+
+        <div class="mb-3 text-center">
+            <a href="/add" class="btn btn-success">➕ Add Expense</a>
+        </div>
+
+        <h3 class="text-info mb-4">Total Spent This Month: <span class="badge bg-danger">₹<%= totalMonthly %></span></h3>
+
+        <table class="table table-hover text-center">
+            <thead class="table-dark">
+    <tr>
+        <th>Title</th>
+        <th>Amount (₹)</th>
+        <th>Date</th>
+        <th>Actions</th>
+    </tr>
+</thead>
+
+           <tbody>
+    <% expenses.forEach(exp => { %>
+        <tr>
+            <td><%= exp.title %></td>
+            <td>₹<%= exp.amount %></td>
+            <td><%= exp.date.toDateString() %></td>
+            <td>
+                <a href="/edit/<%= exp._id %>" class="btn btn-sm btn-warning">✏️ Edit</a>
+                <a href="/delete/<%= exp._id %>" class="btn btn-sm btn-danger" 
+                   onclick="return confirm('Are you sure you want to delete this expense?');">🗑 Delete</a>
+            </td>
+        </tr>
+    <% }) %>
+</tbody>
+
+        </table>
+    </div>
+    <div></div>
+    </div>
+</body>
+</html>
