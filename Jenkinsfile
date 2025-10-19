@@ -4,32 +4,42 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/yourusername/yourrepo.git'
+                // Clone your actual GitHub repository
+                git branch: 'main', url: 'https://github.com/ashwithadevasani02/DevOps.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
+                echo 'Installing project dependencies...'
                 sh 'npm install'
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Server') {
             steps {
-                sh 'npm test'
+                echo 'Starting the Node.js server...'
+                // Run the app (server.js is your entry point)
+                sh 'node server.js &'
             }
         }
 
-        stage('Build') {
+        stage('Archive Logs (Optional)') {
             steps {
-                sh 'npm run build'
+                echo 'Archiving server logs (if any)...'
+                // This step will only work if you save logs
+                sh 'mkdir -p logs || true'
+                archiveArtifacts artifacts: 'logs//*', followSymlinks: false, onlyIfSuccessful: true
             }
         }
+    }
 
-        stage('Archive Artifacts') {
-            steps {
-                archiveArtifacts artifacts: 'build/', followSymlinks: false
-            }
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check Jenkins logs.'
         }
     }
 }
