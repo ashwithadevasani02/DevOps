@@ -1,4 +1,4 @@
-pipeline {
+pipeline { 
   agent any
 
   environment {
@@ -20,6 +20,7 @@ pipeline {
       steps {
         echo '📦 Installing npm dependencies...'
         withEnv(["PATH+NODE=${tool 'node18'}/bin:${env.PATH}"]) {
+          // use npm ci for clean reproducible installs
           sh 'npm ci'
         }
       }
@@ -29,7 +30,8 @@ pipeline {
       steps {
         echo '🧪 Running UI Selenium tests...'
         withEnv(["PATH+NODE=${tool 'node18'}/bin:${env.PATH}"]) {
-          sh 'npm test'
+          // the --exit flag ensures mocha or node exits properly after tests
+          sh 'npm test -- --exit'
         }
       }
     }
@@ -59,13 +61,20 @@ pipeline {
     stage('Deploy Application') {
       steps {
         echo '🚀 Deploying app using Docker Compose...'
+        // stop old containers (ignore errors if none exist)
         sh 'docker-compose down || true'
+        // rebuild and start containers in detached mode
         sh 'docker-compose up -d --build'
       }
     }
   }
 
   post {
+    always {
+      echo "🧹 Cleaning up workspace..."
+      sh 'docker system prune -f || true'
+      deleteDir()
+    }
     success {
       echo "✅ Pipeline executed successfully!"
     }
