@@ -111,7 +111,6 @@ app.get("/delete/:id", async (req, res) => {
 
 // Server setup
 const PORT = process.env.PORT || 3000;
-
 let _server = null;
 
 function start(port = PORT) {
@@ -123,23 +122,30 @@ function start(port = PORT) {
       console.log(`✅ Server running on port ${port}`);
       resolve(_server);
     });
-    _server.on("error", (err) => {
-      reject(err);
-    });
+    _server.on("error", (err) => reject(err));
   });
 }
 
-function stop() {
+async function stop() {
   return new Promise((resolve, reject) => {
     if (!_server) return resolve();
+
     try {
-      _server.close((err) => {
+      _server.close(async (err) => {
         if (err) return reject(err);
+
+        // 🧹 Close MongoDB connection too
+        try {
+          await mongoose.connection.close();
+          console.log("🧹 MongoDB connection closed.");
+        } catch (dbErr) {
+          console.warn("⚠️ Error closing MongoDB connection:", dbErr.message);
+        }
+
         _server = null;
         resolve();
       });
     } catch (err) {
-      // Node may throw synchronously if the server is not running anymore.
       if (err && err.code === "ERR_SERVER_NOT_RUNNING") {
         _server = null;
         return resolve();
@@ -149,8 +155,7 @@ function stop() {
   });
 }
 
-// If server.js is run directly, start the server. When required by tests,
-// the test harness can call start()/stop() to control server lifecycle.
+// Run server if executed directly
 if (require.main === module) {
   start().catch((err) => {
     console.error("Failed to start server:", err);
