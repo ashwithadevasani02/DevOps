@@ -1,4 +1,4 @@
-pipeline {
+pipeline { 
   agent any
 
   environment {
@@ -20,7 +20,7 @@ pipeline {
       steps {
         echo '📦 Installing npm dependencies...'
         withEnv(["PATH+NODE=${tool 'node18'}/bin:${env.PATH}"]) {
-          sh 'npm ci'
+          bat 'npm ci'
         }
       }
     }
@@ -29,8 +29,7 @@ pipeline {
       steps {
         echo '🧪 Running UI Selenium tests...'
         withEnv(["PATH+NODE=${tool 'node18'}/bin:${env.PATH}"]) {
-          // the --exit ensures mocha exits cleanly after tests
-          sh 'npm test -- --exit'
+          bat 'npm test'
         }
       }
     }
@@ -39,8 +38,8 @@ pipeline {
       steps {
         echo '🐳 Building Docker image...'
         script {
-          def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-          sh "docker build -t ${DOCKER_IMAGE}:${commit} -t ${DOCKER_IMAGE}:latest ."
+          def commit = bat(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+          bat "docker build -t ${DOCKER_IMAGE}:${commit} -t ${DOCKER_IMAGE}:latest ."
         }
       }
     }
@@ -49,8 +48,8 @@ pipeline {
       steps {
         echo '🚀 Pushing image to Docker Hub...'
         withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          sh '''
-            echo "$PASS" | docker login -u "$USER" --password-stdin
+          bat '''
+            echo %PASS% | docker login -u %USER% --password-stdin
             docker push ${DOCKER_IMAGE}:latest
           '''
         }
@@ -60,8 +59,8 @@ pipeline {
     stage('Deploy Application') {
       steps {
         echo '🚀 Deploying app using Docker Compose...'
-        sh 'docker-compose down || true'
-        sh 'docker-compose up -d --build'
+        bat 'docker-compose down || exit 0'
+        bat 'docker-compose up -d --build'
       }
     }
   }
@@ -69,11 +68,17 @@ pipeline {
   post {
     always {
       echo '🧹 Cleaning up workspace....'
-      deleteDir()
-      sh 'docker system prune -f || true'
+      script {
+        try {
+          deleteDir()
+        } catch (err) {
+          echo "⚠️ Cleanup skipped: ${err}"
+        }
+        bat 'docker system prune -f || exit 0'
+      }
     }
     success {
-      echo "✅ Pipeline executed successfully"
+      echo "✅ Pipeline executed successfully!"
     }
     failure {
       echo "❌ Pipeline failed — check Jenkins logs."
