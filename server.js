@@ -110,7 +110,52 @@ app.get("/delete/:id", async (req, res) => {
 });
 
 // Server setup
-const PORT = 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+
+let _server = null;
+
+function start(port = PORT) {
+  return new Promise((resolve, reject) => {
+    if (_server) {
+      return resolve(_server);
+    }
+    _server = app.listen(port, "0.0.0.0", () => {
+      console.log(`✅ Server running on port ${port}`);
+      resolve(_server);
+    });
+    _server.on("error", (err) => {
+      reject(err);
+    });
+  });
+}
+
+function stop() {
+  return new Promise((resolve, reject) => {
+    if (!_server) return resolve();
+    try {
+      _server.close((err) => {
+        if (err) return reject(err);
+        _server = null;
+        resolve();
+      });
+    } catch (err) {
+      // Node may throw synchronously if the server is not running anymore.
+      if (err && err.code === "ERR_SERVER_NOT_RUNNING") {
+        _server = null;
+        return resolve();
+      }
+      return reject(err);
+    }
+  });
+}
+
+// If server.js is run directly, start the server. When required by tests,
+// the test harness can call start()/stop() to control server lifecycle.
+if (require.main === module) {
+  start().catch((err) => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, start, stop };
